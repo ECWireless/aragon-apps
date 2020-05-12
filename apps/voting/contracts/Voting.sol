@@ -253,7 +253,7 @@ contract Voting is IForwarder, AragonApp {
     {
         Vote storage vote_ = votes[_voteId];
 
-        open = _isVoteOpen(vote_);
+        open = _isVoteOpen(_voteId);
         executed = vote_.executed;
         startDate = vote_.startDate;
         snapshotBlock = vote_.snapshotBlock;
@@ -374,7 +374,7 @@ contract Voting is IForwarder, AragonApp {
         }
 
         // Vote ended?
-        if (_isVoteOpen(vote_)) {
+        if (_isVoteOpen(_voteId)) {
             return false;
         }
         // Has enough support?
@@ -396,15 +396,24 @@ contract Voting is IForwarder, AragonApp {
     */
     function _canVote(uint256 _voteId, address _voter) internal view returns (bool) {
         Vote storage vote_ = votes[_voteId];
-        return _isVoteOpen(vote_) && token.balanceOfAt(_voter, vote_.snapshotBlock) > 0;
+        return _isVoteOpen(_voteId) && token.balanceOfAt(_voter, vote_.snapshotBlock) > 0;
     }
 
     /**
     * @dev Internal function to check if a vote is still open
     * @return True if the given vote is open, false otherwise
     */
-    function _isVoteOpen(Vote storage vote_) internal view returns (bool) {
-        return getTimestamp64() < vote_.startDate.add(voteTime) && !vote_.executed;
+    function _isVoteOpen(uint256 _voteId) internal view returns (bool) {
+        Vote storage vote_ = votes[_voteId];
+        return getTimestamp64() < _voteEndDate(_voteId) && !vote_.executed;
+    }
+
+    /**
+    * @dev Internal function to tell the end datetime of a vote
+    */
+    function _voteEndDate(uint256 _voteId) internal view returns (uint64) {
+        Vote storage vote_ = votes[_voteId];
+        return vote_.startDate.add(voteTime);
     }
 
     /**
